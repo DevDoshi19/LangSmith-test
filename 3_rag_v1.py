@@ -1,10 +1,11 @@
-# pip install -U langchain langchain-openai langchain-community faiss-cpu pypdf python-dotenv
+# pip install -U langchain langchain-google-genai langchain-community faiss-cpu pypdf python-dotenv
 
 import os
 from dotenv import load_dotenv
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
@@ -20,12 +21,13 @@ loader = PyPDFLoader(PDF_PATH)
 docs = loader.load()  # one Document per page
 
 # 2) Chunk
-splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 splits = splitter.split_documents(docs)
 
 # 3) Embed + index
-emb = OpenAIEmbeddings(model="text-embedding-3-small")
-vs = FAISS.from_documents(splits, emb)
+# emb = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+embedding = HuggingFaceEmbeddings(model_name ="sentence-transformers/all-MiniLM-L6-v2")
+vs = FAISS.from_documents(splits, embedding)
 retriever = vs.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 
 # 4) Prompt
@@ -38,6 +40,12 @@ prompt = ChatPromptTemplate.from_messages([
 llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.7)
 def format_docs(docs): return "\n\n".join(d.page_content for d in docs)
 
+config = {
+    'run_name': 'pdf_rag_example',
+    'metadata':{'model': 'openai/gpt-oss-20b','chain_type': 'RAG','temperature': 0.7},
+    'tags': ['RAG', 'PDF', 'example', 'rag_workflow']
+}
+
 parallel = RunnableParallel({
     "context": retriever | RunnableLambda(format_docs),
     "question": RunnablePassthrough()
@@ -48,5 +56,5 @@ chain = parallel | prompt | llm | StrOutputParser()
 # 6) Ask questions
 print("PDF RAG ready. Ask a question (or Ctrl+C to exit).")
 q = input("\nQ: ")
-ans = chain.invoke(q.strip())
+ans = chain.invoke(q.strip(), config=config)
 print("\nA:", ans)
