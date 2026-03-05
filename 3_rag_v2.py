@@ -22,10 +22,12 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
+os.environ["LANGCHAIN_PROJECT"] = "RAG Chatbot"  # <-- set your project name for LangSmith tracing
+
 PDF_PATH = "islr.pdf"  # change to your file
 
 # ---------- traced setup steps ----------
-@traceable(name="load_pdf")
+@traceable(name="load_pdf",tags=["pdf", "load"], metadata={"file": PDF_PATH,'loder': 'PyPDFLoader'})
 def load_pdf(path: str):
     loader = PyPDFLoader(path)
     return loader.load()  # list[Document]
@@ -53,7 +55,7 @@ def setup_pipeline(pdf_path: str):
     return vs
 
 # ---------- pipeline ----------
-llm = ChatGroq(model="llama3-70b-8192", temperature=0.7)
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.7)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "Answer ONLY from the provided context. If not found, say you don't know."),
