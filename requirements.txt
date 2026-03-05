@@ -94,3 +94,7 @@ yarl==1.20.1
 youtube-transcript-api==0.6.2
 zstandard==0.23.0
 langchain-groq
+langchain-google-generative-ai
+langchain-huggingface 
+sentence-transformers
+langchain_google_genai

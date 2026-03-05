@@ -54,7 +54,13 @@ parallel = RunnableParallel({
 chain = parallel | prompt | llm | StrOutputParser()
 
 # 6) Ask questions
-print("PDF RAG ready. Ask a question (or Ctrl+C to exit).")
-q = input("\nQ: ")
-ans = chain.invoke(q.strip(), config=config)
-print("\nA:", ans)
+while True:
+    
+    print("PDF RAG ready. Ask a question (or Ctrl+C to exit).")
+    q = input("\nQ: ")
+    ans = chain.invoke(q.strip(), config=config)
+    print("\nA:", ans)
+
+    if q.strip().lower() in ["exit", "quit","bye"]:
+        print("Exiting. Goodbye!")
+        break
