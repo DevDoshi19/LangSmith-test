@@ -1,0 +1,6 @@
+{
+  "pdf_path": "C:\\Users\\devdo\\OneDrive\\Desktop\\LangSmith_masterclass\\islr.pdf",
+  "chunk_size": 1500,
+  "chunk_overlap": 100,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2"
+}
