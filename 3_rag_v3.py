@@ -7,13 +7,17 @@ from langsmith import traceable
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+# from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_groq import ChatGroq
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
+
+os.environ["LANGCHAIN_PROJECT"] = "RAG Chatbot"  # <-- set your project name for LangSmith tracing
 
 PDF_PATH = "islr.pdf"  # <- change to your file
 
@@ -32,7 +36,7 @@ def split_documents(docs, chunk_size=1000, chunk_overlap=150):
 
 @traceable(name="build_vectorstore")
 def build_vectorstore(splits):
-    emb = OpenAIEmbeddings(model="text-embedding-3-small")
+    emb = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return FAISS.from_documents(splits, emb)
 
 # ----------------- parent setup function (traced) -----------------
@@ -45,7 +49,7 @@ def setup_pipeline(pdf_path: str, chunk_size=1000, chunk_overlap=150):
     return vs
 
 # ----------------- model, prompt, and run -----------------
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.7)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "Answer ONLY from the provided context. If not found, say you don't know."),
@@ -59,9 +63,9 @@ def format_docs(docs):
 @traceable(name="pdf_rag_full_run")
 def setup_pipeline_and_query(pdf_path: str, question: str):
     # Parent setup run (child of root)
-    vectorstore = setup_pipeline(pdf_path, chunk_size=1000, chunk_overlap=150)
+    vectorstore = setup_pipeline(pdf_path, chunk_size=1500, chunk_overlap=100)
 
-    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
     parallel = RunnableParallel({
         "context": retriever | RunnableLambda(format_docs),
